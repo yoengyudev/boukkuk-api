@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="640" viewBox="0 0 420 640">
+  <rect width="420" height="640" fill="#ffffff"/>
+  <rect x="54" y="54" width="312" height="532" rx="18" fill="#f8f9fa" stroke="#0d6efd" stroke-width="8"/>
+  <text x="210" y="126" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#0d6efd">Payment Receipt</text>
+  <rect x="92" y="178" width="236" height="28" rx="14" fill="#b9dcff"/>
+  <rect x="92" y="236" width="236" height="20" rx="10" fill="#d7eaff"/>
+  <rect x="92" y="282" width="236" height="20" rx="10" fill="#d7eaff"/>
+  <rect x="92" y="328" width="236" height="20" rx="10" fill="#d7eaff"/>
+  <rect x="92" y="412" width="236" height="58" rx="12" fill="#0d6efd"/>
+  <text x="210" y="449" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#ffffff">PAID</text>
+</svg>

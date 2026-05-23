@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#f7f7fb"/>
+  <path d="M320 68l92 72v182H228V140z" fill="#ffffff" stroke="#6f42c1" stroke-width="10"/>
+  <path d="M278 142h84l-22 72 34 84H266l34-84z" fill="#d9c8ff"/>
+  <path d="M286 142l34 72 34-72" fill="none" stroke="#6f42c1" stroke-width="9" stroke-linecap="round"/>
+  <text x="320" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#4c2a8a">Dry Cleaning</text>
+</svg>

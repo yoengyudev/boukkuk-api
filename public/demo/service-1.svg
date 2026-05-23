@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#eef6ff"/>
+  <rect x="120" y="88" width="400" height="244" rx="18" fill="#ffffff" stroke="#0d6efd" stroke-width="10"/>
+  <circle cx="230" cy="210" r="76" fill="#b9dcff"/>
+  <circle cx="230" cy="210" r="44" fill="#0d6efd"/>
+  <rect x="338" y="138" width="118" height="24" rx="12" fill="#0d6efd"/>
+  <rect x="338" y="188" width="156" height="18" rx="9" fill="#80bdff"/>
+  <rect x="338" y="228" width="128" height="18" rx="9" fill="#80bdff"/>
+  <text x="320" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#0b3d91">Wash and Fold</text>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#ecfff7"/>
+  <rect x="108" y="154" width="278" height="116" rx="18" fill="#ffffff" stroke="#198754" stroke-width="10"/>
+  <path d="M386 186h70l58 84H386z" fill="#c3f5dc" stroke="#198754" stroke-width="10"/>
+  <circle cx="198" cy="292" r="34" fill="#198754"/>
+  <circle cx="442" cy="292" r="34" fill="#198754"/>
+  <path d="M154 126h164" stroke="#68d391" stroke-width="16" stroke-linecap="round"/>
+  <text x="320" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#146c43">Pickup Delivery</text>
+</svg>

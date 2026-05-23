@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#eef2f7"/>
+  <circle cx="320" cy="190" r="96" fill="#0d6efd"/>
+  <path d="M274 154h92v86h-92z" fill="#fff"/>
+  <path d="M274 154l46 42 46-42" fill="none" stroke="#0d6efd" stroke-width="8"/>
+  <text x="320" y="344" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#0b3d91">Laundry Service</text>
+</svg>
