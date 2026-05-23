@@ -43,6 +43,7 @@ Route::delete('/services/{id}', [BoukKukApiController::class, 'deleteService']);
 
 Route::get('/profile/carts', [BoukKukApiController::class, 'profileCarts']);
 Route::post('/carts', [BoukKukApiController::class, 'storeCart']);
+Route::put('/carts/{id}', [BoukKukApiController::class, 'updateCart']);
 Route::delete('/carts/{id}', [BoukKukApiController::class, 'deleteCart']);
 Route::post('/carts/checkout', [BoukKukApiController::class, 'checkout']);
 

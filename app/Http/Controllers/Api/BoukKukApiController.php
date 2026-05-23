@@ -390,16 +390,56 @@ class BoukKukApiController extends Controller
             return $this->fail('Service not found', 404);
         }
 
-        DB::table('carts')->insert([
-            'user_id' => $user->id,
-            'service_id' => $service->id,
-            'qty' => max(1, (int) $request->input('qty', 1)),
-            'price' => (float) $service->price,
-            'created_at' => now(),
+        $this->normalizeCart($user->id);
+
+        $qty = max(1, (int) $request->input('qty', 1));
+        $existing = DB::table('carts')
+            ->where('user_id', $user->id)
+            ->where('service_id', $service->id)
+            ->first();
+
+        if ($existing) {
+            DB::table('carts')->where('id', $existing->id)->update([
+                'qty' => (int) $existing->qty + $qty,
+                'price' => (float) $service->price,
+                'updated_at' => now(),
+            ]);
+        } else {
+            DB::table('carts')->insert([
+                'user_id' => $user->id,
+                'service_id' => $service->id,
+                'qty' => $qty,
+                'price' => (float) $service->price,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        return $this->ok($this->cartSummary($user->id), 'Added to cart', 201);
+    }
+
+    public function updateCart(Request $request, int $id): JsonResponse
+    {
+        $user = $this->authUser($request);
+        if (!$user) {
+            return $this->fail('Unauthenticated', 401);
+        }
+
+        $cartItem = DB::table('carts')->where('id', $id)->where('user_id', $user->id)->first();
+        if (!$cartItem) {
+            return $this->fail('Cart item not found', 404);
+        }
+
+        $qty = max(1, (int) $request->input('qty', 1));
+        $service = DB::table('services')->where('id', $cartItem->service_id)->first();
+
+        DB::table('carts')->where('id', $cartItem->id)->update([
+            'qty' => $qty,
+            'price' => $service ? (float) $service->price : (float) $cartItem->price,
             'updated_at' => now(),
         ]);
 
-        return $this->ok($this->cartSummary($user->id), 'Added to cart', 201);
+        return $this->ok($this->cartSummary($user->id), 'Cart item updated');
     }
 
     public function deleteCart(Request $request, int $id): JsonResponse
@@ -423,6 +463,8 @@ class BoukKukApiController extends Controller
         $transactionFile = $request->hasFile('transaction_file')
             ? $this->storeUploadedFile($request, 'transaction_file', 'uploads/transactions')
             : asset('demo/transaction-placeholder.svg');
+
+        $this->normalizeCart($user->id);
 
         $cartItems = DB::table('carts')->where('user_id', $user->id)->get();
         foreach ($cartItems as $item) {
@@ -764,6 +806,8 @@ class BoukKukApiController extends Controller
 
     private function cartSummary(int $userId): array
     {
+        $this->normalizeCart($userId);
+
         $items = DB::table('carts')
             ->where('user_id', $userId)
             ->orderBy('id')
@@ -784,6 +828,36 @@ class BoukKukApiController extends Controller
             'items' => $items,
             'total' => $items->sum(fn ($item) => $item['price'] * $item['qty']),
         ];
+    }
+
+    private function normalizeCart(int $userId): void
+    {
+        $groups = DB::table('carts')
+            ->select('service_id')
+            ->selectRaw('MIN(id) as keep_id')
+            ->selectRaw('SUM(qty) as total_qty')
+            ->selectRaw('COUNT(*) as item_count')
+            ->where('user_id', $userId)
+            ->groupBy('service_id')
+            ->havingRaw('COUNT(*) > 1')
+            ->get();
+
+        foreach ($groups as $group) {
+            $keepItem = DB::table('carts')->where('id', $group->keep_id)->first();
+            $service = DB::table('services')->where('id', $group->service_id)->first();
+
+            DB::table('carts')->where('id', $group->keep_id)->update([
+                'qty' => (int) $group->total_qty,
+                'price' => $service ? (float) $service->price : (float) $keepItem->price,
+                'updated_at' => now(),
+            ]);
+
+            DB::table('carts')
+                ->where('user_id', $userId)
+                ->where('service_id', $group->service_id)
+                ->where('id', '<>', $group->keep_id)
+                ->delete();
+        }
     }
 
     private function paymentArray(?object $payment): ?array
