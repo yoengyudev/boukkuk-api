@@ -11,6 +11,11 @@ use Illuminate\Support\Str;
 
 class BoukKukApiController extends Controller
 {
+    private array $categoryCache = [];
+    private array $roleCache = [];
+    private array $serviceCache = [];
+    private array $userCache = [];
+
     public function login(Request $request): JsonResponse
     {
         $login = $request->input('email_or_phone');
@@ -300,7 +305,9 @@ class BoukKukApiController extends Controller
             $query->where('price', '<=', (float) $request->query('price_end'));
         }
 
-        $items = $query->get()->map(fn ($service) => $this->serviceArray($service))->values();
+        $services = $query->get();
+        $this->primeServiceRelations($services->all());
+        $items = $services->map(fn ($service) => $this->serviceArray($service))->values();
 
         return response()->json([
             'result' => true,
@@ -646,6 +653,7 @@ class BoukKukApiController extends Controller
             return null;
         }
 
+        $this->userCache[(int) $user->id] = $user;
         $roles = $this->rolesForUser((int) $user->id);
 
         return [
@@ -668,14 +676,39 @@ class BoukKukApiController extends Controller
 
     private function rolesForUser(int $userId): array
     {
-        return DB::table('roles')
+        if (array_key_exists($userId, $this->roleCache)) {
+            return $this->roleCache[$userId];
+        }
+
+        $this->primeRolesForUsers([$userId]);
+
+        return $this->roleCache[$userId] ?? [];
+    }
+
+    private function primeRolesForUsers(array $userIds): void
+    {
+        $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds))));
+        $missingIds = array_values(array_filter($userIds, fn ($id) => !array_key_exists($id, $this->roleCache)));
+
+        if ($missingIds === []) {
+            return;
+        }
+
+        foreach ($missingIds as $id) {
+            $this->roleCache[$id] = [];
+        }
+
+        DB::table('roles')
             ->join('role_user', 'roles.id', '=', 'role_user.role_id')
-            ->where('role_user.user_id', $userId)
+            ->whereIn('role_user.user_id', $missingIds)
             ->orderBy('roles.id')
-            ->get(['roles.id', 'roles.name'])
-            ->map(fn ($role) => ['id' => (int) $role->id, 'name' => $role->name])
-            ->values()
-            ->all();
+            ->get(['roles.id', 'roles.name', 'role_user.user_id'])
+            ->each(function ($role) {
+                $this->roleCache[(int) $role->user_id][] = [
+                    'id' => (int) $role->id,
+                    'name' => $role->name,
+                ];
+            });
     }
 
     private function roleId(?int $userId): ?int
@@ -702,14 +735,15 @@ class BoukKukApiController extends Controller
     private function serviceArray(int|object|null $service): ?array
     {
         if (is_int($service)) {
-            $service = DB::table('services')->where('id', $service)->first();
+            $service = $this->findService($service);
         }
         if (!$service) {
             return null;
         }
 
-        $category = DB::table('categories')->where('id', $service->category_id)->first();
-        $creator = DB::table('users')->where('id', $service->creator_id)->first();
+        $this->serviceCache[(int) $service->id] = $service;
+        $category = $this->findCategory((int) $service->category_id);
+        $creator = $this->findUser((int) $service->creator_id);
 
         return [
             'id' => (int) $service->id,
@@ -733,7 +767,11 @@ class BoukKukApiController extends Controller
         $items = DB::table('carts')
             ->where('user_id', $userId)
             ->orderBy('id')
-            ->get()
+            ->get();
+
+        $this->primeServicesByIds($items->pluck('service_id')->all());
+
+        $items = $items
             ->map(fn ($item) => [
                 'id' => (int) $item->id,
                 'qty' => (int) $item->qty,
@@ -754,7 +792,7 @@ class BoukKukApiController extends Controller
             return null;
         }
 
-        $buyer = DB::table('users')->where('id', $payment->buyer_id)->first();
+        $buyer = $this->findUser((int) $payment->buyer_id);
 
         return [
             'id' => (int) $payment->id,
@@ -769,6 +807,81 @@ class BoukKukApiController extends Controller
             'created_at' => $payment->created_at,
             'updated_at' => $payment->updated_at,
         ];
+    }
+
+    private function findCategory(int $id): ?object
+    {
+        if (!array_key_exists($id, $this->categoryCache)) {
+            $this->categoryCache[$id] = DB::table('categories')->where('id', $id)->first();
+        }
+
+        return $this->categoryCache[$id];
+    }
+
+    private function findService(int $id): ?object
+    {
+        if (!array_key_exists($id, $this->serviceCache)) {
+            $service = DB::table('services')->where('id', $id)->first();
+            $this->serviceCache[$id] = $service;
+            if ($service) {
+                $this->primeServiceRelations([$service]);
+            }
+        }
+
+        return $this->serviceCache[$id];
+    }
+
+    private function findUser(int $id): ?object
+    {
+        if (!array_key_exists($id, $this->userCache)) {
+            $this->userCache[$id] = DB::table('users')->where('id', $id)->first();
+        }
+
+        return $this->userCache[$id];
+    }
+
+    private function primeServicesByIds(array $serviceIds): void
+    {
+        $serviceIds = array_values(array_unique(array_filter(array_map('intval', $serviceIds))));
+        $missingIds = array_values(array_filter($serviceIds, fn ($id) => !array_key_exists($id, $this->serviceCache)));
+
+        if ($missingIds === []) {
+            return;
+        }
+
+        $services = DB::table('services')->whereIn('id', $missingIds)->get();
+        foreach ($services as $service) {
+            $this->serviceCache[(int) $service->id] = $service;
+        }
+        $this->primeServiceRelations($services->all());
+    }
+
+    private function primeServiceRelations(array $services): void
+    {
+        $categoryIds = array_values(array_unique(array_filter(array_map(fn ($service) => (int) $service->category_id, $services))));
+        $creatorIds = array_values(array_unique(array_filter(array_map(fn ($service) => (int) $service->creator_id, $services))));
+
+        $missingCategoryIds = array_values(array_filter($categoryIds, fn ($id) => !array_key_exists($id, $this->categoryCache)));
+        if ($missingCategoryIds !== []) {
+            DB::table('categories')->whereIn('id', $missingCategoryIds)->get()->each(function ($category) {
+                $this->categoryCache[(int) $category->id] = $category;
+            });
+            foreach ($missingCategoryIds as $id) {
+                $this->categoryCache[$id] ??= null;
+            }
+        }
+
+        $missingCreatorIds = array_values(array_filter($creatorIds, fn ($id) => !array_key_exists($id, $this->userCache)));
+        if ($missingCreatorIds !== []) {
+            DB::table('users')->whereIn('id', $missingCreatorIds)->get()->each(function ($user) {
+                $this->userCache[(int) $user->id] = $user;
+            });
+            foreach ($missingCreatorIds as $id) {
+                $this->userCache[$id] ??= null;
+            }
+        }
+
+        $this->primeRolesForUsers($creatorIds);
     }
 
     private function paginateArray(array $items, Request $request): array
